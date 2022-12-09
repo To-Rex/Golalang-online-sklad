@@ -88,7 +88,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	router := gin.Default()
 	router.POST("/register", register)
-	router.GET("/login", login)
+	router.POST("/login", login)
 	router.GET("/getAllUser", getAllUser)
 	router.GET("/getUser", getUser)
 	router.PUT("/updatePassword", updatePassword)
