@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+
 	//"os"
 	"strconv"
 	"time"
@@ -54,14 +55,14 @@ type Product struct {
 }
 
 type Transaction struct {
-	TransactionId string `json:"transaction_id"`
-	TransactionDate string `json:"transaction_date"`
-	TransactionSeller string `json:"transaction_seller"`
+	TransactionId      string `json:"transaction_id"`
+	TransactionDate    string `json:"transaction_date"`
+	TransactionSeller  string `json:"transaction_seller"`
 	TransactionProduct string `json:"transaction_product"`
-	TransactionNumber int64 `json:"transaction_number"`
-	TransactionPrice int64 `json:"transaction_price"`
-	TransactionStatus string `json:"transaction_status"`
-	TransactionBenefit int64 `json:"transaction_benefit"`
+	TransactionNumber  int64  `json:"transaction_number"`
+	TransactionPrice   int64  `json:"transaction_price"`
+	TransactionStatus  string `json:"transaction_status"`
+	TransactionBenefit int64  `json:"transaction_benefit"`
 }
 
 func passwordHash(password string) string {
@@ -523,6 +524,27 @@ func updateProduct(c *gin.Context) {
 		fmt.Println(err)
 	}
 	collection := client.Database("DataBase").Collection("products")
+
+	if product.ProductName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Product name is required"})
+		return
+	}
+	if product.ProductPrice < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Product price is required"})
+		return
+	}
+	if product.ProductCatId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Product category is required"})
+		return
+	}
+	if product.ProductBenefit < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Product benefit is required"})
+		return
+	}
+	if product.ProductDesc == "" {
+		product.ProductDesc = "Izohlar yo'q"
+	}
+
 	_, err = collection.UpdateOne(ctx,
 		bson.M{"productid": c.Query("productId")},
 		bson.M{"$set": bson.M{
@@ -592,7 +614,7 @@ func deleteCategory(c *gin.Context) {
 	// delete products
 	collection = client.Database("DataBase").Collection("products")
 	var products []Product
-	cursor, err := collection.Find(ctx , bson.M{"productcatid": c.Query("categoryId")})
+	cursor, err := collection.Find(ctx, bson.M{"productcatid": c.Query("categoryId")})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -633,11 +655,11 @@ func productSell(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = collection.FindOne(ctx, filter ).Decode(&product)
+	err = collection.FindOne(ctx, filter).Decode(&product)
 	if err != nil {
 		fmt.Println(err)
 	}
-	
+
 	if int(product.ProductNumber) < number {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Not enough products"})
 		return
@@ -646,7 +668,15 @@ func productSell(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Number must be greater than 0"})
 		return
 	}
-
+	if c.Query("userId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
+	if c.Query("productId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
+		return
+	}
+	
 	product.ProductNumber = product.ProductNumber - int64(number)
 	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber}})
 	if err != nil {
@@ -692,6 +722,20 @@ func addProductSell(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	if number < 1 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Number must be greater than 0"})
+		return
+	}
+
+	if c.Query("productId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
+		return
+	}
+
+	if c.Query("userId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
 	var transaction Transaction
 	transaction.TransactionId = generateUserId()
 	transaction.TransactionProduct = product.ProductId
@@ -708,12 +752,12 @@ func addProductSell(c *gin.Context) {
 	}
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = c.Query("userId")
-	err = collection.FindOne (ctx, filter ).Decode(&product)
+	err = collection.FindOne(ctx, filter).Decode(&product)
 	if err != nil {
 		fmt.Println(err)
 	}
 	product.ProductNumber = product.ProductNumber + int64(number)
-	_, err = collection.UpdateOne(ctx, filter , bson.M{"$set": bson.M{"productnumber": product.ProductNumber, "productprice": transaction.TransactionPrice, "productbenefit": transaction.TransactionBenefit}})
+	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber, "productprice": transaction.TransactionPrice, "productbenefit": transaction.TransactionBenefit}})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -749,17 +793,28 @@ func addProduct(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product name can't be empty"})
 		return
 	}
-	if product.ProductPrice == 0 {
+	if product.ProductPrice < 0 {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product price can't be empty"})
 		return
 	}
 	if product.ProductCatId == "" {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product category id empty"})
 		return
-	}	
+	}
 	if product.ProductSeller == "" {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product seller can't be empty"})
 		return
+	}
+	if product.ProductNumber < 0 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product number can't be empty"})
+		return
+	}
+	if product.ProductBenefit < 0 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product benefit can't be empty"})
+		return
+	}
+	if product.ProductDesc == "" {
+		product.ProductDesc = "Izohlar yo'q"
 	}
 
 	product.ProductId = generateUserId()
@@ -786,7 +841,6 @@ func addProduct(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product added"})
 }
-
 
 func getUserProductSell(c *gin.Context) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
@@ -844,7 +898,7 @@ func getUserProductSell(c *gin.Context) {
 			transactions = append(transactions, transaction)
 			price = price + int(transaction.TransactionPrice)
 			benefit = benefit + int(transaction.TransactionBenefit)
-		}else {
+		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
 				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
 				if err != nil {
@@ -853,7 +907,7 @@ func getUserProductSell(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions , "price": price, "benefit": benefit})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
 }
@@ -914,16 +968,16 @@ func getProductSell(c *gin.Context) {
 			transactions = append(transactions, transaction)
 			price = price + int(transaction.TransactionPrice)
 			benefit = benefit + int(transaction.TransactionBenefit)
-		}else {
+		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
-				_, err = collection.DeleteOne(ctx, bson .M{"transactionid": transaction.TransactionId})
+				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
 				if err != nil {
 					fmt.Println(err)
 				}
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions , "price": price, "benefit": benefit})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
 }
@@ -984,18 +1038,16 @@ func getAllSell(c *gin.Context) {
 			transactions = append(transactions, transaction)
 			price = price + int(transaction.TransactionPrice)
 			benefit = benefit + int(transaction.TransactionBenefit)
-		}else {
+		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
-				_, err = collection.DeleteOne(ctx, bson .M{"transactionid": transaction.TransactionId})
+				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
 				if err != nil {
 					fmt.Println(err)
 				}
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions , "price": price, "benefit": benefit})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
 }
-
-
