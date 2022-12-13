@@ -43,7 +43,6 @@ type Product struct {
 	ProductId      string `json:"product_id"`
 	ProductName    string `json:"product_name"`
 	ProductDesc    string `json:"product_desc"`
-	ProductImg     string `json:"product_img"`
 	ProductCatId   string `json:"product_cat_id"`
 	ProductPrice   int64  `json:"product_price"`
 	ProductBenefit int64  `json:"product_benefit"`
@@ -424,53 +423,6 @@ func getAllCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": categories})
 }
 
-func addProduct(c *gin.Context) {
-	var product Product
-	c.BindJSON(&product)
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	if err != nil {
-		fmt.Println(err)
-	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer client.Disconnect(ctx)
-	err = client.Ping(ctx, readpref.Primary())
-	if err != nil {
-		fmt.Println(err)
-	}
-	collection := client.Database("DataBase").Collection("products")
-	product.ProductId = generateUserId()
-
-	if product.ProductName == "" {
-		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product name can't be empty"})
-		return
-	}
-	if product.ProductPrice == 0 {
-		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product price can't be empty"})
-		return
-	}
-	if product.ProductCatId == "" {
-		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product category id empty"})
-		return
-	}	
-	if product.ProductSeller == "" {
-		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product seller can't be empty"})
-		return
-	}
-
-	product.ProductId = generateUserId()
-	product.ProductDate = time.Now().Format("2006-01-02 15:04:05")
-
-	_, err = collection.InsertOne(ctx, product)
-	if err != nil {
-		fmt.Println(err)
-	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product added"})
-}
-
 func getAllProduct(c *gin.Context) {
 	var products []Product
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
@@ -579,7 +531,6 @@ func updateProduct(c *gin.Context) {
 			"productcatid":   product.ProductCatId,
 			"productbenefit": product.ProductBenefit,
 			"productdesc":    product.ProductDesc,
-			"productimage":   product.ProductImg,
 			"ProductBenefit": product.ProductBenefit}})
 	if err != nil {
 		fmt.Println(err)
@@ -773,6 +724,69 @@ func addProductSell(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product added"})
 }
+
+func addProduct(c *gin.Context) {
+	var product Product
+	c.BindJSON(&product)
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("products")
+	product.ProductId = generateUserId()
+
+	if product.ProductName == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product name can't be empty"})
+		return
+	}
+	if product.ProductPrice == 0 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product price can't be empty"})
+		return
+	}
+	if product.ProductCatId == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product category id empty"})
+		return
+	}	
+	if product.ProductSeller == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product seller can't be empty"})
+		return
+	}
+
+	product.ProductId = generateUserId()
+	product.ProductDate = time.Now().Format("2006-01-02 15:04:05")
+
+	_, err = collection.InsertOne(ctx, product)
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection = client.Database("DataBase").Collection("transactions")
+	var transaction Transaction
+	transaction.TransactionId = generateUserId()
+	transaction.TransactionProduct = product.ProductId
+	transaction.TransactionNumber = product.ProductNumber
+	transaction.TransactionStatus = "added"
+	transaction.TransactionProduct = product.ProductId
+	transaction.TransactionPrice = product.ProductPrice
+	transaction.TransactionBenefit = product.ProductBenefit
+	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
+	transaction.TransactionSeller = product.ProductSeller
+	_, err = collection.InsertOne(ctx, transaction)
+	if err != nil {
+		fmt.Println(err)
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product added"})
+}
+
 
 func getUserProductSell(c *gin.Context) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
@@ -983,3 +997,5 @@ func getAllSell(c *gin.Context) {
 	price = 0
 	benefit = 0
 }
+
+
