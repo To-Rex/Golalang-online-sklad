@@ -676,7 +676,7 @@ func productSell(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
 		return
 	}
-	
+
 	product.ProductNumber = product.ProductNumber - int64(number)
 	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber}})
 	if err != nil {
@@ -756,6 +756,12 @@ func addProductSell(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	if transaction.TransactionPrice < 1 || transaction.TransactionBenefit < 1 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Price must be greater than 0"})
+		return
+	}
+
 	product.ProductNumber = product.ProductNumber + int64(number)
 	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber, "productprice": transaction.TransactionPrice, "productbenefit": transaction.TransactionBenefit}})
 	if err != nil {
