@@ -108,6 +108,7 @@ func main() {
 	router.GET("/getUserProductSell", getUserProductSell)
 	router.GET("/getProductSell", getProductSell)
 	router.GET("/getAllSell", getAllSell)
+	router.GET("/getSellTransaction", getSellTransaction)
 	router.Run()
 }
 
@@ -1006,6 +1007,78 @@ func getAllSell(c *gin.Context) {
 	collection := client.Database("DataBase").Collection("transactions")
 	var transactions []Transaction
 	cursor, err := collection.Find(ctx, bson.M{"transactionstatus": c.Query("status")})
+	if err != nil {
+		fmt.Println(err)
+	}
+	months := c.Query("months")
+	monthsInt, err := strconv.Atoi(months)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if monthsInt == 3 {
+		monthsInt = 2184
+	}
+	if monthsInt == 2 {
+		monthsInt = 1464
+	}
+	if monthsInt == 1 {
+		monthsInt = 744
+	}
+	if monthsInt == 0 {
+		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
+		return
+	}
+	if monthsInt == 7 {
+		monthsInt = 192
+	}
+	price := 0
+	benefit := 0
+
+	for cursor.Next(ctx) {
+		var transaction Transaction
+		cursor.Decode(&transaction)
+		transactionDate, err := time.Parse("2006-01-02 15:04:05", transaction.TransactionDate)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
+			transactions = append(transactions, transaction)
+			price = price + int(transaction.TransactionPrice)
+			benefit = benefit + int(transaction.TransactionBenefit)
+		} else {
+			if time.Now().Sub(transactionDate).Hours() > 2184 {
+				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
+	price = 0
+	benefit = 0
+}
+
+func getSellTransaction(c *gin.Context) {
+	//get all transactions from database sorted by date and time and return it sold and added
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("transactions")
+	var transactions []Transaction
+	//get all transactions from database
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		fmt.Println(err)
 	}
