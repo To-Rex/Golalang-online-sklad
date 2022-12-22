@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sort"
 
 	//"os"
 	"strconv"
@@ -922,7 +923,10 @@ func getUserProductSell(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "transactions": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
 }
@@ -992,6 +996,9 @@ func getProductSell(c *gin.Context) {
 			}
 		}
 	}
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	})
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
@@ -1062,6 +1069,9 @@ func getAllSell(c *gin.Context) {
 			}
 		}
 	}
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	})
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
@@ -1159,6 +1169,9 @@ func getSellTransaction(c *gin.Context) {
 			}
 		}
 	}
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	}) 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
