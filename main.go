@@ -58,6 +58,7 @@ type Transaction struct {
 	TransactionId      string `json:"transaction_id"`
 	TransactionDate    string `json:"transaction_date"`
 	TransactionSeller  string `json:"transaction_seller"`
+	TransactionProductName string `json:"transaction_product"`
 	TransactionProduct string `json:"transaction_product"`
 	TransactionNumber  int64  `json:"transaction_number"`
 	TransactionPrice   int64  `json:"transaction_price"`
@@ -685,6 +686,7 @@ func productSell(c *gin.Context) {
 	}
 	var transaction Transaction
 	transaction.TransactionId = generateUserId()
+	transaction.TransactionProductName = product.ProductName
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = int64(number)
 	transaction.TransactionPrice = product.ProductPrice
@@ -739,6 +741,7 @@ func addProductSell(c *gin.Context) {
 	}
 	var transaction Transaction
 	transaction.TransactionId = generateUserId()
+	transaction.TransactionProductName = product.ProductName
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = int64(number)
 	transaction.TransactionStatus = "added"
@@ -836,6 +839,7 @@ func addProduct(c *gin.Context) {
 	transaction.TransactionId = generateUserId()
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = product.ProductNumber
+	transaction.TransactionProductName = product.ProductName
 	transaction.TransactionStatus = "added"
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionPrice = product.ProductPrice
@@ -1057,6 +1061,31 @@ func getAllSell(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
+}
+
+func getProductByName(productId string) string {
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("products")
+	//filter product by id and return product name
+	var product Product
+	err = collection.FindOne(ctx, bson.M{"productid": productId}).Decode(&product)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return product.ProductName
 }
 
 func getSellTransaction(c *gin.Context) {
