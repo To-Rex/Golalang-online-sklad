@@ -55,15 +55,15 @@ type Product struct {
 }
 
 type Transaction struct {
-	TransactionId      string `json:"transaction_id"`
-	TransactionDate    string `json:"transaction_date"`
-	TransactionSeller  string `json:"transaction_seller"`
-	TransactionProductName string `json:"transaction_product"`
-	TransactionProduct string `json:"transaction_product"`
-	TransactionNumber  int64  `json:"transaction_number"`
-	TransactionPrice   int64  `json:"transaction_price"`
-	TransactionStatus  string `json:"transaction_status"`
-	TransactionBenefit int64  `json:"transaction_benefit"`
+	TransactionId          string `json:"transaction_id"`
+	TransactionDate        string `json:"transaction_date"`
+	TransactionSeller      string `json:"transaction_seller"`
+	TransactionProductName string `json:"transaction_product_name"`
+	TransactionProduct     string `json:"transaction_product"`
+	TransactionNumber      int64  `json:"transaction_number"`
+	TransactionPrice       int64  `json:"transaction_price"`
+	TransactionStatus      string `json:"transaction_status"`
+	TransactionBenefit     int64  `json:"transaction_benefit"`
 }
 
 func passwordHash(password string) string {
@@ -739,21 +739,25 @@ func addProductSell(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
 		return
 	}
+
 	var transaction Transaction
 	transaction.TransactionId = generateUserId()
 	transaction.TransactionProductName = product.ProductName
-	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = int64(number)
 	transaction.TransactionStatus = "added"
 	transaction.TransactionProduct = c.Query("productId")
 	transaction.TransactionPrice, err = strconv.ParseInt(c.PostForm("transaction_price"), 10, 64)
 	if err != nil {
-		fmt.Println(err)
+		transaction.TransactionPrice = 0
 	}
 	transaction.TransactionBenefit, err = strconv.ParseInt(c.PostForm("transaction_benefit"), 10, 64)
 	if err != nil {
-		fmt.Println(err)
+		transaction.TransactionBenefit = 0
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "benefit and price must be greater than 0"})
+		return
 	}
+	transaction.TransactionProductName = c.PostForm("transaction_product_name")
+
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = c.Query("userId")
 	err = collection.FindOne(ctx, filter).Decode(&product)
