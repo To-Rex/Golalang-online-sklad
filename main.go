@@ -111,6 +111,7 @@ func main() {
 	router.GET("/getProductSell", getProductSell)
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
+	router.DELETE("/deleteUser", deleteUser)
 	router.Run()
 }
 
@@ -1175,4 +1176,46 @@ func getSellTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
+}
+
+func deleteUser(c *gin.Context) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// collection := client.Database("DataBase").Collection("products")
+	// _, err = collection.DeleteOne(ctx, bson.M{"productid": c.Query("productId")})
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if c.Query("productId") == "" {
+	// 	c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
+	// 	return
+	// }
+	// c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product deleted"})
+
+	collection := client.Database("DataBase").Collection("users")
+	//get user id from request
+	//delete user from database
+	_, err = collection.DeleteOne(ctx, bson .M{"userid": c.Query("userid")})
+	if err != nil {
+		fmt.Println(err)
+	}
+	if c.Query("userid") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User deleted"})
+
 }
