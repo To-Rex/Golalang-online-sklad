@@ -96,6 +96,7 @@ func main() {
 	router.PUT("/updatePassword", updatePassword)
 	router.PUT("/updateBlocked", updateBlocked)
 	router.PUT("/updateUserRole", updateUserRole)
+	router.PUT("/updateUser", updateUser)
 	router.POST("/addCategory", addCategory)
 	router.GET("/getAllCategory", getAllCategory)
 	router.POST("/addProduct", addProduct)
@@ -112,6 +113,7 @@ func main() {
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
+
 	router.Run()
 }
 
@@ -949,7 +951,9 @@ func getProductSell(c *gin.Context) {
 	}
 	collection := client.Database("DataBase").Collection("transactions")
 	var transactions []Transaction
-	cursor, err := collection.Find(ctx, bson.M{"transactionproduct": c.Query("productId"), "transactionstatus": "sold"})
+	cursor, err := collection.Find(ctx, bson.M{
+		"transactionproduct": c.Query("productId"), 
+		"transactionstatus": "sold"})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1172,7 +1176,7 @@ func getSellTransaction(c *gin.Context) {
 	}
 	sort.Slice(transactions, func(i, j int) bool {
 		return transactions[i].TransactionDate > transactions[j].TransactionDate
-	}) 
+	})
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
@@ -1193,22 +1197,8 @@ func deleteUser(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	// collection := client.Database("DataBase").Collection("products")
-	// _, err = collection.DeleteOne(ctx, bson.M{"productid": c.Query("productId")})
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// if c.Query("productId") == "" {
-	// 	c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
-	// 	return
-	// }
-	// c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product deleted"})
-
 	collection := client.Database("DataBase").Collection("users")
-	//get user id from request
-	//delete user from database
-	_, err = collection.DeleteOne(ctx, bson .M{"userid": c.Query("userid")})
+	_, err = collection.DeleteOne(ctx, bson.M{"userid": c.Query("userid")})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1217,5 +1207,50 @@ func deleteUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User deleted"})
+}
+
+func updateUser(c *gin.Context) {
+	var user User
+	err := c.ShouldBindJSON(&user)
+	if err != nil {
+		fmt.Println(err)
+	}
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("users")
+	var result User
+	err = collection.FindOne(ctx, bson.M {"userid": c.Query("userId")}).Decode(&result)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(result.Name)
+	fmt.Println(result.Surname)
+	fmt.Println(result.UserName)
+	if c.Query("userId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
+	_, err = collection.UpdateOne(ctx, bson.M{"userid": c.Query("userId")}, bson.M{"$set": bson.M{
+		"username": user.UserName,
+		 "name": user.Name,
+		 "surname": user.Surname,
+	}})
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User updated"})
 
 }
