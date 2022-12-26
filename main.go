@@ -952,8 +952,8 @@ func getProductSell(c *gin.Context) {
 	collection := client.Database("DataBase").Collection("transactions")
 	var transactions []Transaction
 	cursor, err := collection.Find(ctx, bson.M{
-		"transactionproduct": c.Query("productId"), 
-		"transactionstatus": "sold"})
+		"transactionproduct": c.Query("productId"),
+		"transactionstatus":  "sold"})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1231,21 +1231,35 @@ func updateUser(c *gin.Context) {
 	}
 	collection := client.Database("DataBase").Collection("users")
 	var result User
-	err = collection.FindOne(ctx, bson.M {"userid": c.Query("userId")}).Decode(&result)
+	err = collection.FindOne(ctx, bson.M{"userid": c.Query("userId")}).Decode(&result)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(result.Name)
-	fmt.Println(result.Surname)
-	fmt.Println(result.UserName)
 	if c.Query("userId") == "" {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
 		return
 	}
+	if user.UserName == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Username cannot be empty"})
+		return
+	}
+	if user.Name == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Name cannot be empty"})
+		return
+	}
+	if user.Surname == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Surname cannot be empty"})
+		return
+	}
+	if user.Phone == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Phone number cannot be empty"})
+		return
+	}
 	_, err = collection.UpdateOne(ctx, bson.M{"userid": c.Query("userId")}, bson.M{"$set": bson.M{
 		"username": user.UserName,
-		 "name": user.Name,
-		 "surname": user.Surname,
+		"name":     user.Name,
+		"surname":  user.Surname,
+		"phone":    user.Phone,
 	}})
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
