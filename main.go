@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sort"
 
-	//"os"
 	"strconv"
 	"time"
 
@@ -112,6 +111,7 @@ func main() {
 	router.GET("/getProductSell", getProductSell)
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
+	//router.GET("/getSoldTransaction", getSoldTransaction)
 	router.DELETE("/deleteUser", deleteUser)
 
 	router.Run()
@@ -683,6 +683,16 @@ func productSell(c *gin.Context) {
 		return
 	}
 
+	addition := int64(0)
+	addition, err = strconv.ParseInt(c.PostForm("addition_price"), 10, 64)
+	if err != nil {
+		addition = 0
+	}
+	if product.ProductNumber < -1 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Not enough products"})
+		return
+	}
+
 	product.ProductNumber = product.ProductNumber - int64(number)
 	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber}})
 	if err != nil {
@@ -694,7 +704,7 @@ func productSell(c *gin.Context) {
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = int64(number)
 	transaction.TransactionPrice = product.ProductPrice
-	transaction.TransactionBenefit = product.ProductBenefit
+	transaction.TransactionBenefit = addition + product.ProductBenefit
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = c.Query("userId")
 	transaction.TransactionStatus = "sold"
@@ -861,154 +871,6 @@ func addProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product added"})
 }
 
-func getUserProductSell(c *gin.Context) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	if err != nil {
-		fmt.Println(err)
-	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer client.Disconnect(ctx)
-	err = client.Ping(ctx, readpref.Primary())
-	if err != nil {
-		fmt.Println(err)
-	}
-	collection := client.Database("DataBase").Collection("transactions")
-	var transactions []Transaction
-	cursor, err := collection.Find(ctx, bson.M{"transactionseller": c.Query("userId"), "transactionstatus": "sold"})
-	if err != nil {
-		fmt.Println(err)
-	}
-	months := c.Query("months")
-	monthsInt, err := strconv.Atoi(months)
-	if err != nil {
-		fmt.Println(err)
-	}
-	if monthsInt == 3 {
-		monthsInt = 2184
-	}
-	if monthsInt == 2 {
-		monthsInt = 1464
-	}
-	if monthsInt == 1 {
-		monthsInt = 744
-	}
-	if monthsInt == 0 {
-		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
-		return
-	}
-	if monthsInt == 7 {
-		monthsInt = 192
-	}
-	price := 0
-	benefit := 0
-
-	for cursor.Next(ctx) {
-		var transaction Transaction
-		cursor.Decode(&transaction)
-		transactionDate, err := time.Parse("2006-01-02 15:04:05", transaction.TransactionDate)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
-			transactions = append(transactions, transaction)
-			price = price + int(transaction.TransactionPrice)
-			benefit = benefit + int(transaction.TransactionBenefit)
-		} else {
-			if time.Now().Sub(transactionDate).Hours() > 2184 {
-				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
-		}
-	}
-	sort.Slice(transactions, func(i, j int) bool {
-		return transactions[i].TransactionDate > transactions[j].TransactionDate
-	})
-	c.JSON(http.StatusOK, gin.H{"status": "success", "transactions": transactions, "price": price, "benefit": benefit})
-	price = 0
-	benefit = 0
-}
-
-func getProductSell(c *gin.Context) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	if err != nil {
-		fmt.Println(err)
-	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer client.Disconnect(ctx)
-	err = client.Ping(ctx, readpref.Primary())
-	if err != nil {
-		fmt.Println(err)
-	}
-	collection := client.Database("DataBase").Collection("transactions")
-	var transactions []Transaction
-	cursor, err := collection.Find(ctx, bson.M{
-		"transactionproduct": c.Query("productId"),
-		"transactionstatus":  "sold"})
-	if err != nil {
-		fmt.Println(err)
-	}
-	months := c.Query("months")
-	monthsInt, err := strconv.Atoi(months)
-	if err != nil {
-		fmt.Println(err)
-	}
-	if monthsInt == 3 {
-		monthsInt = 2184
-	}
-	if monthsInt == 2 {
-		monthsInt = 1464
-	}
-	if monthsInt == 1 {
-		monthsInt = 744
-	}
-	if monthsInt == 0 {
-		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
-		return
-	}
-	if monthsInt == 7 {
-		monthsInt = 192
-	}
-	price := 0
-	benefit := 0
-
-	for cursor.Next(ctx) {
-		var transaction Transaction
-		cursor.Decode(&transaction)
-		transactionDate, err := time.Parse("2006-01-02 15:04:05", transaction.TransactionDate)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
-			transactions = append(transactions, transaction)
-			price = price + int(transaction.TransactionPrice)
-			benefit = benefit + int(transaction.TransactionBenefit)
-		} else {
-			if time.Now().Sub(transactionDate).Hours() > 2184 {
-				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
-		}
-	}
-	sort.Slice(transactions, func(i, j int) bool {
-		return transactions[i].TransactionDate > transactions[j].TransactionDate
-	})
-	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
-	price = 0
-	benefit = 0
-}
-
 func getAllSell(c *gin.Context) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
@@ -1131,6 +993,7 @@ func getSellTransaction(c *gin.Context) {
 		fmt.Println(err)
 	}
 	months := c.Query("months")
+	sells := c.Query("sells")
 	monthsInt, err := strconv.Atoi(months)
 	if err != nil {
 		fmt.Println(err)
@@ -1145,11 +1008,11 @@ func getSellTransaction(c *gin.Context) {
 		monthsInt = 744
 	}
 	if monthsInt == 0 {
+		monthsInt = 24
+	}
+	if monthsInt < -1 {
 		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
 		return
-	}
-	if monthsInt == 7 {
-		monthsInt = 192
 	}
 	price := 0
 	benefit := 0
@@ -1162,9 +1025,25 @@ func getSellTransaction(c *gin.Context) {
 			fmt.Println(err)
 		}
 		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
-			transactions = append(transactions, transaction)
-			price = price + int(transaction.TransactionPrice)
-			benefit = benefit + int(transaction.TransactionBenefit)
+			if sells == "sold"{
+				if transaction.TransactionStatus == "sold" {
+				transactions = append(transactions, transaction)
+				price = price + int(transaction.TransactionPrice)
+				benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "added" {
+				if transaction.TransactionStatus == "added" {
+					transactions = append(transactions, transaction)
+					price = price + int(transaction.TransactionPrice)
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "all"||sells==""{
+				transactions = append(transactions, transaction)
+				price = price + int(transaction.TransactionPrice)
+				benefit = benefit + int(transaction.TransactionBenefit)
+			}
 		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
 				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
@@ -1178,6 +1057,188 @@ func getSellTransaction(c *gin.Context) {
 		return transactions[i].TransactionDate > transactions[j].TransactionDate
 	})
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
+	price = 0
+	benefit = 0
+}
+
+func getProductSell(c *gin.Context) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("transactions")
+	var transactions []Transaction
+	cursor, err := collection.Find(ctx, bson.M{
+		"transactionproduct": c.Query("productId"),})
+	if err != nil {
+		fmt.Println(err)
+	}
+	months := c.Query("months")
+	sells := c.Query("sells")
+	monthsInt, err := strconv.Atoi(months)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if monthsInt == 3 {
+		monthsInt = 2184
+	}
+	if monthsInt == 2 {
+		monthsInt = 1464
+	}
+	if monthsInt == 1 {
+		monthsInt = 744
+	}
+	if monthsInt == 0 {
+		monthsInt = 24
+	}
+	if monthsInt < -1 {
+		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
+		return
+	}
+
+	price := 0
+	benefit := 0
+
+	for cursor.Next(ctx) {
+		var transaction Transaction
+		cursor.Decode(&transaction)
+		transactionDate, err := time.Parse("2006-01-02 15:04:05", transaction.TransactionDate)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
+			if sells == "sold"{
+				if transaction.TransactionStatus == "sold" {
+					transactions = append(transactions, transaction)
+					price = price + int(transaction.TransactionPrice)
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "added" {
+				if transaction.TransactionStatus == "added" {
+					transactions = append(transactions, transaction)
+					price = price + int(transaction.TransactionPrice)
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "all"||sells==""{
+				transactions = append(transactions, transaction)
+				price = price + int(transaction.TransactionPrice)
+				benefit = benefit + int(transaction.TransactionBenefit)
+			}
+		} else {
+			if time.Now().Sub(transactionDate).Hours() > 2184 {
+				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		}
+	}
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": transactions, "price": price, "benefit": benefit})
+	price = 0
+	benefit = 0
+}
+
+func getUserProductSell(c *gin.Context) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("transactions")
+	var transactions []Transaction
+	cursor, err := collection.Find(ctx, bson.M{"transactionseller": c.Query("userId")})
+	if err != nil {
+		fmt.Println(err)
+	}
+	months := c.Query("months")
+	sells := c.Query("sells")
+	monthsInt, err := strconv.Atoi(months)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if monthsInt == 3 {
+		monthsInt = 2184
+	}
+	if monthsInt == 2 {
+		monthsInt = 1464
+	}
+	if monthsInt == 1 {
+		monthsInt = 744
+	}
+	if monthsInt == 0 {
+		monthsInt = 24
+	}
+	if monthsInt < -1 {
+		c.JSON(http.StatusOK, gin.H{"status": "success", "error": "months must be greater than 0"})
+		return
+	}
+	price := 0
+	benefit := 0
+
+	for cursor.Next(ctx) {
+		var transaction Transaction
+		cursor.Decode(&transaction)
+		transactionDate, err := time.Parse("2006-01-02 15:04:05", transaction.TransactionDate)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if time.Now().Sub(transactionDate).Hours() < float64(monthsInt) {
+			if sells == "sold"{
+				if transaction.TransactionStatus == "sold" {
+					transactions = append(transactions, transaction)
+					price = price + int(transaction.TransactionPrice)
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "added" {
+				if transaction.TransactionStatus == "added" {
+					transactions = append(transactions, transaction)
+					price = price + int(transaction.TransactionPrice)
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+			}
+			if sells == "all"||sells==""{
+				transactions = append(transactions, transaction)
+				price = price + int(transaction.TransactionPrice)
+				benefit = benefit + int(transaction.TransactionBenefit)
+			}
+		} else {
+			if time.Now().Sub(transactionDate).Hours() > 2184 {
+				_, err = collection.DeleteOne(ctx, bson.M{"transactionid": transaction.TransactionId})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		}
+	}
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].TransactionDate > transactions[j].TransactionDate
+	})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "transactions": transactions, "price": price, "benefit": benefit})
 	price = 0
 	benefit = 0
 }
