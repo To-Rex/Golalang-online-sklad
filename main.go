@@ -785,7 +785,7 @@ func addProductSell(c *gin.Context) {
 		fmt.Println(err)
 	}
 
-	if transaction.TransactionPrice < 1 || transaction.TransactionBenefit < 1 {
+	if transaction.TransactionPrice < 1 {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Price must be greater than 0"})
 		return
 	}
