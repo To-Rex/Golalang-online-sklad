@@ -198,6 +198,10 @@ func login(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Wrong password"})
 		return
 	}
+	if result.Blocked {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User blocked"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"username": result.UserName, "name": result.Name, "surname": result.Surname, "role": result.UserRole, "phone": result.Phone, "blocked": result.Blocked, "userid": result.UserId, "userstatus": result.UserStatus, "registerdate": result.RegisterDate})
 }
 
