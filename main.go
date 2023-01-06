@@ -771,7 +771,9 @@ func addProductSell(c *gin.Context) {
 	transaction.TransactionBenefit, err = strconv.ParseInt(c.PostForm("transaction_benefit"), 10, 64)
 	if err != nil {
 		transaction.TransactionBenefit = 0
-		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "benefit and price must be greater than 0"})
+	}
+	if transaction.TransactionBenefit < 0 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Benefit must be greater than 0"})
 		return
 	}
 	transaction.TransactionProductName = c.PostForm("transaction_product_name")
