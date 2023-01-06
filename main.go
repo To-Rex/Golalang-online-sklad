@@ -865,7 +865,7 @@ func addProduct(c *gin.Context) {
 	transaction.TransactionStatus = "added"
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionPrice = product.ProductPrice
-	transaction.TransactionBenefit = product.ProductBenefit
+	transaction.TransactionBenefit = 0
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = product.ProductSeller
 	_, err = collection.InsertOne(ctx, transaction)
