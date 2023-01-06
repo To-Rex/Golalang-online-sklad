@@ -791,7 +791,7 @@ func addProductSell(c *gin.Context) {
 	}
 
 	product.ProductNumber = product.ProductNumber + int64(number)
-	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber, "productprice": transaction.TransactionPrice, "productbenefit": transaction.TransactionBenefit}})
+	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber}})
 	if err != nil {
 		fmt.Println(err)
 	}
