@@ -113,12 +113,7 @@ func main() {
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
 
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"*"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
-	config.AllowCredentials = true
-	router.Use(cors.New(config))
+	router.Use(cors.Default())
 	router.Run()
 
 	
