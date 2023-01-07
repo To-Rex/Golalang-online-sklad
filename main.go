@@ -182,6 +182,10 @@ func register(c *gin.Context) {
 }
 
 func login(c *gin.Context) {
+	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
 	var user User
 	c.BindJSON(&user)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
