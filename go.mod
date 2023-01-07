@@ -86,6 +86,7 @@ require (
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/labstack/echo v3.3.10+incompatible
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/martinsirbe/go-sms v1.0.1
 	github.com/mattn/go-isatty v0.0.14 // indirect

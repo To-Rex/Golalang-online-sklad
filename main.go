@@ -7,10 +7,15 @@ import (
 	"net/http"
 	"sort"
 
+	//cors
+	//"github.com/rs/cors"
 	"strconv"
 	"time"
-	"github.com/gin-contrib/cors"
+
+	//"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -85,64 +90,69 @@ func generateUserId() string {
 	return string(b)
 }
 
-func CORSMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-        c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-        c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-        c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-        if c.Request.Method == "OPTIONS" {
-            c.AbortWithStatus(204)
-            return
-        }
-        c.Next()
-    }
-}
-
 func main() {
-	rand.Seed(time.Now().UnixNano())
-	router := gin.Default()
-	router.POST("/register", register)
-	router.POST("/login", login)
-	router.GET("/getAllUser", getAllUser)
-	router.GET("/getUser", getUser)
-	router.PUT("/updatePassword", updatePassword)
-	router.PUT("/updateBlocked", updateBlocked)
-	router.PUT("/updateUserRole", updateUserRole)
-	router.PUT("/updateUser", updateUser)
-	router.POST("/addCategory", addCategory)
-	router.GET("/getAllCategory", getAllCategory)
-	router.POST("/addProduct", addProduct)
-	router.GET("/getAllProduct", getAllProduct)
-	router.GET("/getProductsByCategory", getProductsByCategory)
-	router.GET("/getProduct", getProduct)
-	router.PUT("/updateProduct", updateProduct)
-	router.DELETE("/deleteProduct", deleteProduct)
-	router.DELETE("/deleteCategory", deleteCategory)
-	router.POST("/productSell", productSell)
-	router.POST("/addProductSell", addProductSell)
-	router.GET("/getUserProductSell", getUserProductSell)
-	router.GET("/getProductSell", getProductSell)
-	router.GET("/getAllSell", getAllSell)
-	router.GET("/getSellTransaction", getSellTransaction)
-	router.DELETE("/deleteUser", deleteUser)
-	//router.Use(cors.Default())
-	//router.Use(CORSMiddleware())
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+	//rand.Seed(time.Now().UnixNano())
+	//router := gin.Default()
+	// router.POST("/register", register)
+	// router.POST("/login", login)
+	// router.GET("/getAllUser", getAllUser)
+	// router.GET("/getUser", getUser)
+	// router.PUT("/updatePassword", updatePassword)
+	// router.PUT("/updateBlocked", updateBlocked)
+	// router.PUT("/updateUserRole", updateUserRole)
+	// router.PUT("/updateUser", updateUser)
+	// router.POST("/addCategory", addCategory)
+	// router.GET("/getAllCategory", getAllCategory)
+	// router.POST("/addProduct", addProduct)
+	// router.GET("/getAllProduct", getAllProduct)
+	// router.GET("/getProductsByCategory", getProductsByCategory)
+	// router.GET("/getProduct", getProduct)
+	// router.PUT("/updateProduct", updateProduct)
+	// router.DELETE("/deleteProduct", deleteProduct)
+	// router.DELETE("/deleteCategory", deleteCategory)
+	// router.POST("/productSell", productSell)
+	// router.POST("/addProductSell", addProductSell)
+	// router.GET("/getUserProductSell", getUserProductSell)
+	// router.GET("/getProductSell", getProductSell)
+	// router.GET("/getAllSell", getAllSell)
+	// router.GET("/getSellTransaction", getSellTransaction)
+	// router.DELETE("/deleteUser", deleteUser)
+
+	e := echo.New()
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
-
-	router.Run()
-
-	
-	
+	// e.GET("/getAllUser", getAllUser)
+	// e.GET("/getUser", getUser)
+	// e.POST("/register", register)
+	e.POST("/login", login)
+	// e.PUT("/updatePassword", updatePassword)
+	// e.PUT("/updateBlocked", updateBlocked)
+	// e.PUT("/updateUserRole", updateUserRole)
+	// e.PUT("/updateUser", updateUser)
+	// e.POST("/addCategory", addCategory)
+	// e.GET("/getAllCategory", getAllCategory)
+	// e.POST("/addProduct", addProduct)
+	// e.GET("/getAllProduct", getAllProduct)
+	// e.GET("/getProductsByCategory", getProductsByCategory)
+	// e.GET("/getProduct", getProduct)
+	// e.PUT("/updateProduct", updateProduct)
+	// e.DELETE("/deleteProduct", deleteProduct)
+	// e.DELETE("/deleteCategory", deleteCategory)
+	// e.POST("/productSell", productSell)
+	// e.POST("/addProductSell", addProductSell)
+	// e.GET("/getUserProductSell", getUserProductSell)
+	// e.GET("/getProductSell", getProductSell)
+	// e.GET("/getAllSell", getAllSell)
+	// e.GET("/getSellTransaction", getSellTransaction)
+	// e.DELETE("/deleteUser", deleteUser)
+	e.Logger.Fatal(e.Start(":8080"))	
 }
+
+
+	
+
 
 func register(c *gin.Context) {
 	var user User
@@ -193,9 +203,48 @@ func register(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User created"})
 }
 
-func login(c *gin.Context) {
+// func login(c *gin.Context) {
+// 	var user User
+// 	c.BindJSON(&user)
+// 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+// 	err = client.Connect(ctx)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	defer client.Disconnect(ctx)
+// 	err = client.Ping(ctx, readpref.Primary())
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	var result User
+// 	collection := client.Database("DataBase").Collection("users")
+// 	err = collection.FindOne(ctx, bson.M{"username": user.UserName}).Decode(&result)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	if result.UserName != user.UserName {
+// 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+// 		return
+// 	}
+// 	err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(user.Password))
+// 	if err != nil {
+// 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Wrong password"})
+// 		return
+// 	}
+// 	if result.Blocked {
+// 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User blocked"})
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, gin.H{"username": result.UserName, "name": result.Name, "surname": result.Surname, "role": result.UserRole, "phone": result.Phone, "blocked": result.Blocked, "userid": result.UserId, "userstatus": result.UserStatus, "registerdate": result.RegisterDate})
+// }
+
+func login(c echo.Context) error {
 	var user User
-	c.BindJSON(&user)
+	c.Bind(&user)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		fmt.Println(err)
@@ -218,19 +267,20 @@ func login(c *gin.Context) {
 	}
 	if result.UserName != user.UserName {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
-		return
+		return nil
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(user.Password))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Wrong password"})
-		return
+		return nil
 	}
 	if result.Blocked {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User blocked"})
-		return
+		return nil
 	}
 	c.JSON(http.StatusOK, gin.H{"username": result.UserName, "name": result.Name, "surname": result.Surname, "role": result.UserRole, "phone": result.Phone, "blocked": result.Blocked, "userid": result.UserId, "userstatus": result.UserStatus, "registerdate": result.RegisterDate})
-}
+	return nil
+} 
 
 func getAllUser(c *gin.Context) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
