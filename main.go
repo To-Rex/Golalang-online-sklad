@@ -113,7 +113,7 @@ func main() {
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*", "*"},
+		AllowedOrigins:   []string{"*"},
 		AllowCredentials: true,
 		Debug: 		  true,
 	})
