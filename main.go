@@ -9,7 +9,7 @@ import (
 
 	"strconv"
 	"time"
-
+	"github.com/rs/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -85,7 +85,6 @@ func generateUserId() string {
 	return string(b)
 }
 
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	router := gin.Default()
@@ -113,42 +112,16 @@ func main() {
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
-
-	//cors error fix for flutter web
-	router.OPTIONS("/register", HandleFoo)
-	router.OPTIONS("/login", HandleFoo)
-	router.OPTIONS("/getAllUser", HandleFoo)
-	router.OPTIONS("/getUser", HandleFoo)
-	router.OPTIONS("/updatePassword", HandleFoo)
-	router.OPTIONS("/updateBlocked", HandleFoo)
-	router.OPTIONS("/updateUserRole", HandleFoo)
-	router.OPTIONS("/updateUser", HandleFoo)
-	router.OPTIONS("/addCategory", HandleFoo)
-	router.OPTIONS("/getAllCategory", HandleFoo)
-	router.OPTIONS("/addProduct", HandleFoo)
-	router.OPTIONS("/getAllProduct", HandleFoo)
-	router.OPTIONS("/getProductsByCategory", HandleFoo)
-	router.OPTIONS("/getProduct", HandleFoo)
-	router.OPTIONS("/updateProduct", HandleFoo)
-	router.OPTIONS("/deleteProduct", HandleFoo)
-	router.OPTIONS("/deleteCategory", HandleFoo)
-	router.OPTIONS("/productSell", HandleFoo)
-	router.OPTIONS("/addProductSell", HandleFoo)
-	router.OPTIONS("/getUserProductSell", HandleFoo)
-	router.OPTIONS("/getProductSell", HandleFoo)
-	router.OPTIONS("/getAllSell", HandleFoo)
-	router.OPTIONS("/getSellTransaction", HandleFoo)
-	router.OPTIONS("/deleteUser", HandleFoo)
 	router.Run()
-}
-func HandleFoo(c *gin.Context) {
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Content-Type", "application/json")
-	c.AbortWithStatus(200)
-	c.Next()
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"https://golalang-online-sklad-production.up.railway.app", "http://localhost:54650/#/"},
+		AllowCredentials: true,
+		Debug: 		  true,
+	})
+	handler := c.Handler(router)
+	if err := http.ListenAndServe(":8080", handler); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func register(c *gin.Context) {

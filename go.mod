@@ -39,6 +39,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/mondora/firebase-auth-echo-middleware v0.2.9 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
+	github.com/rs/cors v1.8.3 // indirect
 	github.com/sendgrid/rest v2.6.2+incompatible // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/afero v1.1.2 // indirect
