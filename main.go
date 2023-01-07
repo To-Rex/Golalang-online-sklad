@@ -112,16 +112,13 @@ func main() {
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
-	router.Run()
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://golalang-online-sklad-production.up.railway.app", "http://localhost:54650/#/"},
+		AllowedOrigins:   []string{"*", "http://localhost:54650/#/"},
 		AllowCredentials: true,
 		Debug: 		  true,
 	})
-	handler := c.Handler(router)
-	if err := http.ListenAndServe(":8080", handler); err != nil {
-		fmt.Println(err)
-	}
+	c.Handler(router)
+	router.Run()
 }
 
 func register(c *gin.Context) {
