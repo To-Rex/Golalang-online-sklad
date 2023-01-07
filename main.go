@@ -147,7 +147,8 @@ func main() {
 	// e.GET("/getAllSell", getAllSell)
 	// e.GET("/getSellTransaction", getSellTransaction)
 	// e.DELETE("/deleteUser", deleteUser)
-	e.Logger.Fatal(e.Start(":8080"))	
+	//e.Logger.Fatal(e.Start(":8080")) deploy server
+	e.Logger.Fatal(e.Start) //local server
 }
 
 
