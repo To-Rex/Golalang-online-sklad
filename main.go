@@ -86,39 +86,46 @@ func generateUserId() string {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-	router := gin.Default()
-	router.POST("/register", register)
-	router.POST("/login", login)
-	router.GET("/getAllUser", getAllUser)
-	router.GET("/getUser", getUser)
-	router.PUT("/updatePassword", updatePassword)
-	router.PUT("/updateBlocked", updateBlocked)
-	router.PUT("/updateUserRole", updateUserRole)
-	router.PUT("/updateUser", updateUser)
-	router.POST("/addCategory", addCategory)
-	router.GET("/getAllCategory", getAllCategory)
-	router.POST("/addProduct", addProduct)
-	router.GET("/getAllProduct", getAllProduct)
-	router.GET("/getProductsByCategory", getProductsByCategory)
-	router.GET("/getProduct", getProduct)
-	router.PUT("/updateProduct", updateProduct)
-	router.DELETE("/deleteProduct", deleteProduct)
-	router.DELETE("/deleteCategory", deleteCategory)
-	router.POST("/productSell", productSell)
-	router.POST("/addProductSell", addProductSell)
-	router.GET("/getUserProductSell", getUserProductSell)
-	router.GET("/getProductSell", getProductSell)
-	router.GET("/getAllSell", getAllSell)
-	router.GET("/getSellTransaction", getSellTransaction)
-	router.DELETE("/deleteUser", deleteUser)
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
-		Debug: 		  true,
-	})
-	c.Handler(router)
-	router.Run()
+	// rand.Seed(time.Now().UnixNano())
+	// router := gin.Default()
+	// router.POST("/register", register)
+	// router.POST("/login", login)
+	// router.GET("/getAllUser", getAllUser)
+	// router.GET("/getUser", getUser)
+	// router.PUT("/updatePassword", updatePassword)
+	// router.PUT("/updateBlocked", updateBlocked)
+	// router.PUT("/updateUserRole", updateUserRole)
+	// router.PUT("/updateUser", updateUser)
+	// router.POST("/addCategory", addCategory)
+	// router.GET("/getAllCategory", getAllCategory)
+	// router.POST("/addProduct", addProduct)
+	// router.GET("/getAllProduct", getAllProduct)
+	// router.GET("/getProductsByCategory", getProductsByCategory)
+	// router.GET("/getProduct", getProduct)
+	// router.PUT("/updateProduct", updateProduct)
+	// router.DELETE("/deleteProduct", deleteProduct)
+	// router.DELETE("/deleteCategory", deleteCategory)
+	// router.POST("/productSell", productSell)
+	// router.POST("/addProductSell", addProductSell)
+	// router.GET("/getUserProductSell", getUserProductSell)
+	// router.GET("/getProductSell", getProductSell)
+	// router.GET("/getAllSell", getAllSell)
+	// router.GET("/getSellTransaction", getSellTransaction)
+	// router.DELETE("/deleteUser", deleteUser)
+	// router.Run()
+
+	mux := http.NewServeMux()
+    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.Write([]byte("{\"hello\": \"world\"}"))
+    })
+
+    // cors.Default() setup the middleware with default options being
+    // all origins accepted with simple methods (GET, POST). See
+    // documentation below for more options.
+    handler := cors.Default().Handler(mux)
+    http.ListenAndServe(":8080", handler)
+	
 }
 
 func register(c *gin.Context) {
