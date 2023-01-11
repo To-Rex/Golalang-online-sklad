@@ -19,6 +19,7 @@ import (
 
 const uri = "mongodb+srv://root:0000@cluster0.kncismv.mongodb.net/?retryWrites=true&w=majority"
 
+
 type User struct {
 	UserName     string `json:"username" binding:"required"`
 	Name         string `json:"name"`
@@ -84,6 +85,21 @@ func generateUserId() string {
 	return string(b)
 }
 
+func CORSMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+	  ctx.Writer.Header().Set("Content-Type", "application/json")
+	  ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	  ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	  ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	  ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT , DELETE ,PATCH, HEAD")
+	  if ctx.Request.Method == "OPTIONS" {
+		ctx.AbortWithStatus(204)
+		return
+	  }
+	  ctx.Next()
+	}
+  }
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	router := gin.Default()
@@ -118,6 +134,7 @@ func main() {
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-CSRF-Token"}
 	config.AllowCredentials = true
 	router.Use(cors.New(config))
+	router.Use(CORSMiddleware())
 	router.Run()
 }
 
