@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	//gin cors fix
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
