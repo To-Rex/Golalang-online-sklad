@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -128,16 +126,7 @@ func main() {
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
 	router.DELETE("/deleteUser", deleteUser)
-	//router.Use(cors.CORSMiddleware())
-	cors := cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	})
-	router.Use(cors)
+	router.Use(CORSMiddleware())
 
 	router.Run()
 }
