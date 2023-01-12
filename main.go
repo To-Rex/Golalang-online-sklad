@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	//gin cors fix
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -84,20 +86,58 @@ func generateUserId() string {
 	return string(b)
 }
 
+
+// func main() {
+// 	rand.Seed(time.Now().UnixNano())
+// 	router := gin.Default()
+// 	router.POST("/register", register)
+// 	router.POST("/login", login)
+// 	router.GET("/getAllUser", getAllUser)
+// 	router.GET("/getUser", getUser)
+// 	router.PUT("/updatePassword", updatePassword)
+// 	router.PUT("/updateBlocked", updateBlocked)
+// 	router.PUT("/updateUserRole", updateUserRole)
+// 	router.PUT("/updateUser", updateUser)
+// 	router.POST("/addCategory", addCategory)
+// 	router.GET("/getAllCategory", getAllCategory)
+// 	router.POST("/addProduct", addProduct)
+// 	router.GET("/getAllProduct", getAllProduct)
+// 	router.GET("/getProductsByCategory", getProductsByCategory)
+// 	router.GET("/getProduct", getProduct)
+// 	router.PUT("/updateProduct", updateProduct)
+// 	router.DELETE("/deleteProduct", deleteProduct)
+// 	router.DELETE("/deleteCategory", deleteCategory)
+// 	router.POST("/productSell", productSell)
+// 	router.POST("/addProductSell", addProductSell)
+// 	router.GET("/getUserProductSell", getUserProductSell)
+// 	router.GET("/getProductSell", getProductSell)
+// 	router.GET("/getAllSell", getAllSell)
+// 	router.GET("/getSellTransaction", getSellTransaction)
+// 	router.DELETE("/deleteUser", deleteUser)
+// 	router.Use(CORSMiddleware())
+
+// 	router.Run()
+// }
+
+//cors fix for web app and mobile app
 func CORSMiddleware() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-	  ctx.Writer.Header().Set("Content-Type", "application/json")
-	  ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	  ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	  ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-	  ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT , DELETE ,PATCH, HEAD")
-	  if ctx.Request.Method == "OPTIONS" {
-		ctx.AbortWithStatus(204)
-		return
-	  }
-	  ctx.Next()
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
+		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
+		c.Writer.Header().Set("Content-Type", "application/json")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
 	}
-  }
+}
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -130,6 +170,7 @@ func main() {
 
 	router.Run()
 }
+
 
 
 func register(c *gin.Context) {
