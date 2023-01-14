@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	//"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +18,7 @@ import (
 )
 
 const uri = "mongodb+srv://root:0000@cluster0.kncismv.mongodb.net/?retryWrites=true&w=majority"
-
+//const uri = "mongodb+srv://omborxona:root@cluster0.oskxrxp.mongodb.net/?retryWrites=true&w=majority"
 
 type User struct {
 	UserName     string `json:"username" binding:"required"`
@@ -84,62 +85,15 @@ func generateUserId() string {
 	return string(b)
 }
 
-
-// func main() {
-// 	rand.Seed(time.Now().UnixNano())
-// 	router := gin.Default()
-// 	router.POST("/register", register)
-// 	router.POST("/login", login)
-// 	router.GET("/getAllUser", getAllUser)
-// 	router.GET("/getUser", getUser)
-// 	router.PUT("/updatePassword", updatePassword)
-// 	router.PUT("/updateBlocked", updateBlocked)
-// 	router.PUT("/updateUserRole", updateUserRole)
-// 	router.PUT("/updateUser", updateUser)
-// 	router.POST("/addCategory", addCategory)
-// 	router.GET("/getAllCategory", getAllCategory)
-// 	router.POST("/addProduct", addProduct)
-// 	router.GET("/getAllProduct", getAllProduct)
-// 	router.GET("/getProductsByCategory", getProductsByCategory)
-// 	router.GET("/getProduct", getProduct)
-// 	router.PUT("/updateProduct", updateProduct)
-// 	router.DELETE("/deleteProduct", deleteProduct)
-// 	router.DELETE("/deleteCategory", deleteCategory)
-// 	router.POST("/productSell", productSell)
-// 	router.POST("/addProductSell", addProductSell)
-// 	router.GET("/getUserProductSell", getUserProductSell)
-// 	router.GET("/getProductSell", getProductSell)
-// 	router.GET("/getAllSell", getAllSell)
-// 	router.GET("/getSellTransaction", getSellTransaction)
-// 	router.DELETE("/deleteUser", deleteUser)
-// 	router.Use(CORSMiddleware())
-
-// 	router.Run()
-// }
-
-//cors fix for web app and mobile app
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
-		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
-		c.Writer.Header().Set("Content-Type", "application/json")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	router := gin.Default()
+	router.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Next()
+	})
+	
+	//Authorization
 	router.POST("/register", register)
 	router.POST("/login", login)
 	router.GET("/getAllUser", getAllUser)
@@ -148,27 +102,37 @@ func main() {
 	router.PUT("/updateBlocked", updateBlocked)
 	router.PUT("/updateUserRole", updateUserRole)
 	router.PUT("/updateUser", updateUser)
+	router.DELETE("/deleteUser", deleteUser)
+
+	//Category
 	router.POST("/addCategory", addCategory)
 	router.GET("/getAllCategory", getAllCategory)
+	router.GET("/getProductsByCategory", getProductsByCategory)
+	router.DELETE("/deleteCategory", deleteCategory)
+
+	//Product
 	router.POST("/addProduct", addProduct)
 	router.GET("/getAllProduct", getAllProduct)
-	router.GET("/getProductsByCategory", getProductsByCategory)
 	router.GET("/getProduct", getProduct)
 	router.PUT("/updateProduct", updateProduct)
 	router.DELETE("/deleteProduct", deleteProduct)
-	router.DELETE("/deleteCategory", deleteCategory)
+
+	//Transaction
 	router.POST("/productSell", productSell)
 	router.POST("/addProductSell", addProductSell)
+	router.POST("/addProductSellPrice", productSellPrice)
 	router.GET("/getUserProductSell", getUserProductSell)
 	router.GET("/getProductSell", getProductSell)
 	router.GET("/getAllSell", getAllSell)
 	router.GET("/getSellTransaction", getSellTransaction)
-	router.DELETE("/deleteUser", deleteUser)
-	router.Use(CORSMiddleware())
+	router.DELETE("/deleteSellTransaction", deleteSellTransaction)
 
+	//config := cors.DefaultConfig()
+    //config.AllowAllOrigins = true
+    //router.Use(cors.New(config))
+	
 	router.Run()
 }
-
 
 
 func register(c *gin.Context) {
@@ -761,8 +725,85 @@ func productSell(c *gin.Context) {
 	transaction.TransactionProductName = product.ProductName
 	transaction.TransactionProduct = product.ProductId
 	transaction.TransactionNumber = int64(number)
-	transaction.TransactionPrice = product.ProductPrice
-	transaction.TransactionBenefit = addition + product.ProductBenefit
+	transaction.TransactionPrice = product.ProductPrice * int64(number)
+	transaction.TransactionBenefit = int64(number)*(addition + product.ProductBenefit)
+	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
+	transaction.TransactionSeller = c.Query("userId")
+	transaction.TransactionStatus = "sold"
+	collection = client.Database("DataBase").Collection("transactions")
+	_, err = collection.InsertOne(ctx, transaction)
+	if err != nil {
+		fmt.Println(err)
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Product sold"})
+}
+func productSellPrice(c *gin.Context) {
+	var product Product
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("products")
+
+	filter := bson.M{"productid": c.Query("productId")}
+	number, err := strconv.Atoi(c.Query("number"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = collection.FindOne(ctx, filter).Decode(&product)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if int(product.ProductNumber) < number {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Not enough products"})
+		return
+	}
+	if number < 1 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Number must be greater than 0"})
+		return
+	}
+	if c.Query("userId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "User not found"})
+		return
+	}
+	if c.Query("productId") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
+		return
+	}
+
+	addition := int64(0)
+	addition, err = strconv.ParseInt(c.PostForm("addition_price"), 10, 64)
+	if err != nil {
+		addition = 0
+	}
+	if product.ProductNumber < -1 {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Not enough products"})
+		return
+	}
+
+	product.ProductNumber = product.ProductNumber - int64(number)
+	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": bson.M{"productnumber": product.ProductNumber}})
+	if err != nil {
+		fmt.Println(err)
+	}
+	var transaction Transaction
+	transaction.TransactionId = generateUserId()
+	transaction.TransactionProductName = product.ProductName
+	transaction.TransactionProduct = product.ProductId
+	transaction.TransactionNumber = int64(number)
+	transaction.TransactionPrice = product.ProductPrice * int64(number)
+	transaction.TransactionBenefit = addition * int64(number)
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = c.Query("userId")
 	transaction.TransactionStatus = "sold"
@@ -826,17 +867,22 @@ func addProductSell(c *gin.Context) {
 	if err != nil {
 		transaction.TransactionBenefit = 0
 	}
+	
 	if transaction.TransactionBenefit < 0 {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Benefit must be greater than 0"})
 		return
 	}
 	transaction.TransactionProductName = c.PostForm("transaction_product_name")
 
+	transaction.TransactionPrice = transaction.TransactionPrice * int64(number)
+	transaction.TransactionBenefit = transaction.TransactionBenefit * int64(number)
+
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = c.Query("userId")
 	err = collection.FindOne(ctx, filter).Decode(&product)
 	if err != nil {
-		fmt.Println(err)
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Product not found"})
+		return
 	}
 
 	if transaction.TransactionPrice < 1 {
@@ -920,7 +966,7 @@ func addProduct(c *gin.Context) {
 	transaction.TransactionProductName = product.ProductName
 	transaction.TransactionStatus = "added"
 	transaction.TransactionProduct = product.ProductId
-	transaction.TransactionPrice = product.ProductPrice
+	transaction.TransactionPrice = product.ProductPrice * product.ProductNumber
 	transaction.TransactionBenefit = 0
 	transaction.TransactionDate = time.Now().Format("2006-01-02 15:04:05")
 	transaction.TransactionSeller = product.ProductSeller
@@ -1088,7 +1134,7 @@ func getSellTransaction(c *gin.Context) {
 			if sells == "sold"{
 				if transaction.TransactionStatus == "sold" {
 				transactions = append(transactions, transaction)
-				price = price + int(transaction.TransactionPrice)
+				//price = price + int(transaction.TransactionPrice)
 				benefit = benefit + int(transaction.TransactionBenefit)
 				}
 			}
@@ -1101,8 +1147,14 @@ func getSellTransaction(c *gin.Context) {
 			}
 			if sells == "all"||sells==""{
 				transactions = append(transactions, transaction)
-				price = price + int(transaction.TransactionPrice)
-				benefit = benefit + int(transaction.TransactionBenefit)
+				if transaction.TransactionStatus == "sold" {
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+				if transaction.TransactionStatus == "added" {
+					price = price + int(transaction.TransactionPrice)
+				}
+				// price = price + int(transaction.TransactionPrice)
+				// benefit = benefit + int(transaction.TransactionBenefit)
 			}
 		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
@@ -1180,7 +1232,7 @@ func getProductSell(c *gin.Context) {
 			if sells == "sold"{
 				if transaction.TransactionStatus == "sold" {
 					transactions = append(transactions, transaction)
-					price = price + int(transaction.TransactionPrice)
+					//price = price + int(transaction.TransactionPrice)
 					benefit = benefit + int(transaction.TransactionBenefit)
 				}
 			}
@@ -1193,8 +1245,14 @@ func getProductSell(c *gin.Context) {
 			}
 			if sells == "all"||sells==""{
 				transactions = append(transactions, transaction)
-				price = price + int(transaction.TransactionPrice)
-				benefit = benefit + int(transaction.TransactionBenefit)
+				if transaction.TransactionStatus == "sold" {
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+				if transaction.TransactionStatus == "added" {
+					price = price + int(transaction.TransactionPrice)
+				}
+				// price = price + int(transaction.TransactionPrice)
+				// benefit = benefit + int(transaction.TransactionBenefit)
 			}
 		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
@@ -1283,8 +1341,14 @@ func getUserProductSell(c *gin.Context) {
 			}
 			if sells == "all"||sells==""{
 				transactions = append(transactions, transaction)
-				price = price + int(transaction.TransactionPrice)
-				benefit = benefit + int(transaction.TransactionBenefit)
+				if transaction.TransactionStatus == "sold" {
+					benefit = benefit + int(transaction.TransactionBenefit)
+				}
+				if transaction.TransactionStatus == "added" {
+					price = price + int(transaction.TransactionPrice)
+				}
+				// price = price + int(transaction.TransactionPrice)
+				// benefit = benefit + int(transaction.TransactionBenefit)
 			}
 		} else {
 			if time.Now().Sub(transactionDate).Hours() > 2184 {
@@ -1388,4 +1452,32 @@ func updateUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User updated"})
 
+}
+
+func deleteSellTransaction(c *gin.Context) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer client.Disconnect(ctx)
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println(err)
+	}
+	collection := client.Database("DataBase").Collection("transactions")
+	_, err = collection.DeleteOne(ctx, bson.M{"transactionid": c.Query("transactionid")})
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Transaction not found"})
+		return
+	}
+	if c.Query("transactionid") == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Transaction not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Transaction deleted"})
 }
